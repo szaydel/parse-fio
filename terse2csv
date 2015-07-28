@@ -1,0 +1,88 @@
+#!/usr/bin/env python
+# The MIT License (MIT)
+#
+# Copyright (c) 2015 Sam Zaydel
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
+import sys
+from select import select
+TIMEOUT = 2
+
+HEADER = \
+    "tersev,fiov,jobname,groupid,error,read/io_bytes,read/bw,read/iops," \
+    "read/runtime,read/slat/min,read/slat/max,read/slat/mean,read/slat/stddev," \
+    "read/clat/min,read/clat/max,read/clat/mean,read/clat/stddev," \
+    "read/clat/percentile/1.000000,read/clat/percentile/5.000000," \
+    "read/clat/percentile/10.000000,read/clat/percentile/20.000000," \
+    "read/clat/percentile/30.000000,read/clat/percentile/40.000000," \
+    "read/clat/percentile/50.000000,read/clat/percentile/60.000000," \
+    "read/clat/percentile/70.000000,read/clat/percentile/80.000000," \
+    "read/clat/percentile/90.000000,read/clat/percentile/95.000000," \
+    "read/clat/percentile/99.000000,read/clat/percentile/99.500000," \
+    "read/clat/percentile/99.900000,read/clat/percentile/99.950000," \
+    "read/clat/percentile/99.990000,read/clat/percentile/0.00,r1,r2," \
+    "read/lat/min,read/lat/max,read/lat/mean,read/lat/stddev,read/bw_min," \
+    "read/bw_max,read/bw_agg,read/bw_mean,read/bw_dev,write/io_bytes,write/bw," \
+    "write/iops,write/runtime,write/slat/min,write/slat/max,write/slat/mean," \
+    "write/slat/stddev,write/clat/min,write/clat/max,write/clat/mean," \
+    "write/clat/stddev,write/clat/percentile/1.000000," \
+    "write/clat/percentile/5.000000,write/clat/percentile/10.000000," \
+    "write/clat/percentile/20.000000,write/clat/percentile/30.000000," \
+    "write/clat/percentile/40.000000,write/clat/percentile/50.000000," \
+    "write/clat/percentile/60.000000,write/clat/percentile/70.000000," \
+    "write/clat/percentile/80.000000,write/clat/percentile/90.000000," \
+    "write/clat/percentile/95.000000,write/clat/percentile/99.000000," \
+    "write/clat/percentile/99.500000,write/clat/percentile/99.900000," \
+    "write/clat/percentile/99.950000,write/clat/percentile/99.990000," \
+    "write/clat/percentile/0.00,w1,w2,write/lat/min,write/lat/max," \
+    "write/lat/mean,write/lat/stddev,write/bw_min,write/bw_max,write/bw_agg," \
+    "write/bw_mean,write/bw_dev,usr_cpu,sys_cpu,ctx,majf,minf,iodepth_level/1," \
+    "iodepth_level/2,iodepth_level/4,iodepth_level/8,iodepth_level/16," \
+    "iodepth_level/32,iodepth_level/>=64,latency_us/2,latency_us/4," \
+    "latency_us/10,latency_us/20,latency_us/50,latency_us/100,latency_us/250," \
+    "latency_us/500,latency_us/750,latency_us/1000,latency_ms/2,latency_ms/4," \
+    "latency_ms/10,latency_ms/20,latency_ms/50,latency_ms/100,latency_ms/250," \
+    "latency_ms/500,latency_ms/750,latency_ms/1000,latency_ms/2000," \
+    "latency_ms/>=2000,desc"
+
+
+def usage():
+    sys.stderr.write("Usage: cat </path/to/raw.fio.data> | %s\n" % sys.argv[0])
+    sys.exit(1)
+
+if __name__ == "__main__":
+    csvlines = []
+
+    # Timeout quickly here, if there is nothing on stdin. No sense waiting...
+    sin, _, _ = select([sys.stdin], [], [], 3)
+    if not sin:
+        usage()
+    lines = sin[0].readlines()
+
+    # Fix each line to turn it into a normal CSV line.
+    for line in lines:
+        asList = line.rstrip("\n").split(";")
+        asList = [x.replace("%", "") for x in asList]
+        for i, v in enumerate(asList):
+            if "=" in v and i > 2:
+                asList[i] = v.split("=")[1]
+        csvlines.append(",".join(asList))
+    print(HEADER)
+    print("\n".join(csvlines))
