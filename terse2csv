@@ -79,6 +79,8 @@ if __name__ == "__main__":
     # Fix each line to turn it into a normal CSV line.
     for line in lines:
         asList = line.rstrip("\n").split(";")
+        if int(asList[8]) == 0:  # If runtime is 0 seconds, skip record
+            continue
         asList = [x.replace("%", "") for x in asList]
         for i, v in enumerate(asList):
             if "=" in v and i > 2:
